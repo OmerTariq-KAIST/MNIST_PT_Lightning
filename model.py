@@ -47,8 +47,8 @@ class NN(pl.LightningModule):
             self.logger.experiment.add_image("mnist_images", grid, self.global_step)
 
         return {"loss": loss, "scores": scores, "y": y}
-    
-    def training_epoch_end(self, outputs):
+    """
+    def on_train_epoch_end(self, ):
         scores = torch.cat([x["scores"] for x in outputs])
         y = torch.cat([x["y"] for x in outputs])
         self.log_dict(
@@ -60,6 +60,7 @@ class NN(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
         )
+        """
 
     def validation_step(self, batch, batch_idx):
         loss, scores, y = self._common_step(batch, batch_idx)
