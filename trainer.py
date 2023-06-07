@@ -1,7 +1,7 @@
 import torch
 import pytorch_lightning as pl
 from model import NN
-from dataset import MnistDataModule
+from dataload import MnistDataModule
 import config
 from callbacks import MyPrintingCallback, EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
