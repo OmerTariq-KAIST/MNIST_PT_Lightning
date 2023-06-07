@@ -1,31 +1,40 @@
-from model import *
+import torch
+import pytorch_lightning as pl
+from model import NN
+from dataset import MnistDataModule
 import config
-from dataload import MnistDataModule
-from callbacks import MyCallbackPrint, EarlyStopping
+from callbacks import MyPrintingCallback, EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.profilers import PyTorchProfiler
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium") # to make lightning happy
 
-def main():
-
-    logger = TensorBoardLogger("tb_logs", name="MNIST_Model")
-
-    # Set device cuda for GPU if it's available otherwise run on the CPU
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = NN(input_size=config.input_size, num_classes=config.num_classes)
-    dm = MnistDataModule(data_dir=config.data_dir, batch_size=config.batch_size, num_workers=config.num_workers)
+if __name__ == "__main__":
+    logger = TensorBoardLogger("tb_logs", name="mnist_model_v1")
+    profiler = PyTorchProfiler(
+        on_trace_ready=torch.profiler.tensorboard_trace_handler("tb_logs/profiler0"),
+        schedule=torch.profiler.schedule(skip_first=10, wait=1, warmup=1, active=20),
+    )
+    model = NN(
+        input_size=config.INPUT_SIZE,
+        learning_rate=config.LEARNING_RATE,
+        num_classes=config.NUM_CLASSES,
+    )
+    dm = MnistDataModule(
+        data_dir=config.DATA_DIR,
+        batch_size=config.BATCH_SIZE,
+        num_workers=config.NUM_WORKERS,
+    )
     trainer = pl.Trainer(
-        profiler="simple",
+        profiler=profiler,
         logger=logger,
-        accelerator=config.Accelerator, 
-        devices=config.DEVICES, 
-        min_epochs=config.MIN_EPOCH, 
-        max_epochs=config.MAX_EPOCH)
-    callbacks=[MyCallbackPrint(), EarlyStopping(monitor="val_accuracy")], #monitor val loss
+        accelerator=config.ACCELERATOR,
+        devices=config.DEVICES,
+        min_epochs=1,
+        max_epochs=config.NUM_EPOCHS,
+        precision=config.PRECISION,
+        callbacks=[MyPrintingCallback(), EarlyStopping(monitor="val_loss")],
+    )
     trainer.fit(model, dm)
     trainer.validate(model, dm)
     trainer.test(model, dm)
-
-
-if __name__ =="__main__":
-    main()
